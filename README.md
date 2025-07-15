@@ -10,7 +10,6 @@ A sleek, responsive web app that takes a blog URL, extracts the main content, ge
 - 💾 **Data Persistence**:
   - Summaries are saved to **Supabase** (English & Urdu).
   - Full blog text is saved to **MongoDB**.
-- 🎯 **Duplicate Handling**: Avoids storing duplicate summaries or full texts.
 
 ## 🛠️ Stack
 
