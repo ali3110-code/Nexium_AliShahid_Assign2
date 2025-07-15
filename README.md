@@ -22,4 +22,4 @@ A sleek, responsive web app that takes a blog URL, extracts the main content, ge
   - Supabase PostgreSQL (`summaries` table)
   - MongoDB Atlas (`blogs` collection)
 
-## 📁 Project Structure
+## Live Demo : https://blog-summarizer-my.vercel.app/
