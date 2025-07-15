@@ -2,8 +2,9 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import Footer from "@/components/ui/footer";
+import { toast } from "sonner";
+import { useState } from "react";
 
 export default function Home() {
   const [blogURL, setBlogURL] = useState("");
@@ -12,12 +13,13 @@ export default function Home() {
   const [summaryUr, setSummaryUr] = useState("");
   const [translating, setTranslating] = useState(false);
 
-  const handleCopy = async (text: string) => {
+  const handleCopy = async (text: string, lang: "en" | "ur") => {
     try {
       await navigator.clipboard.writeText(text);
-      alert("Copied to clipboard!");
+      toast.success(`Copied ${lang === "en" ? "English" : "Urdu"} summary!`);
     } catch (err) {
-      console.error("Copy failed:", err);
+      toast.error("Copy failed.");
+      console.error("Copy error:", err);
     }
   };
 
@@ -32,6 +34,7 @@ export default function Home() {
       return data.responseData.translatedText || "Translation failed";
     } catch (error) {
       console.error("Translation error:", error);
+      toast.error("Translation failed.");
       return "Translation error";
     }
   }
@@ -66,8 +69,9 @@ export default function Home() {
     const wordFreq: Record<string, number> = {};
     const allWords = text.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
 
-    for (const w of allWords)
+    for (const w of allWords) {
       if (!stopWords.has(w)) wordFreq[w] = (wordFreq[w] || 0) + 1;
+    }
 
     const scored = sentences.map((s) => {
       const score = (s.toLowerCase().match(/\b[a-z]{3,}\b/g) || []).reduce(
@@ -79,7 +83,7 @@ export default function Home() {
 
     let summary = "";
     for (const { s } of scored.sort((a, b) => b.score - a.score)) {
-      if (summary.length + s.length + 1 > 490) break; // char limit due to mymemory API
+      if (summary.length + s.length + 1 > 490) break;
       summary += (summary ? " " : "") + s;
       if (summary.split(/(?<=[.!?])\s+/).length >= maxSentences) break;
     }
@@ -96,18 +100,22 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: blogURL }),
       });
+
       const data = await res.json();
       const text: string = data.fullText || "No content found.";
       const summary = generateSummary(text, 3);
       setSummaryEn(summary);
+
       await fetch("/api/saveFullText", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ blogURL, fullText: text }),
       });
-      console.log("Text saved");
+
+      toast.success("Blog summarized successfully!");
     } catch (err) {
       console.error("Scrape error:", err);
+      toast.error("Failed to summarize.");
     }
     setLoading(false);
   };
@@ -117,12 +125,19 @@ export default function Home() {
     const urdu = await translateToUrdu(summaryEn);
     setSummaryUr(urdu);
     setTranslating(false);
-    await fetch("/api/saveSummary", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ blogURL, summaryEn, summaryUr: urdu }),
-    });
-    console.log("Summaries saved");
+
+    try {
+      await fetch("/api/saveSummary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blogURL, summaryEn, summaryUr: urdu }),
+      });
+
+      toast.success("Urdu translation saved!");
+    } catch (err) {
+      console.error("Save summary error:", err);
+      toast.error("Failed to save translation.");
+    }
   };
 
   return (
@@ -135,7 +150,7 @@ export default function Home() {
           Summarize karo — English ya Urdu mein.
         </p>
 
-        {/* Input */}
+        {/* Input Box */}
         <div className="w-full max-w-xl flex flex-col gap-4 items-end bg-white/5 backdrop-blur-lg border border-cyan-400/20 shadow-[0_8px_24px_rgba(0,255,255,0.08)] rounded-2xl p-6 sm:p-8">
           <Input
             type="text"
@@ -146,6 +161,7 @@ export default function Home() {
           />
           <Button
             onClick={handleScrape}
+            disabled={loading || !blogURL}
             className="relative overflow-hidden py-2 px-6 sm:px-8 rounded-md text-white font-semibold before:absolute before:inset-0 before:bg-gradient-to-r before:from-cyan-500 before:to-blue-600 before:blur-sm before:transition-transform before:duration-300 hover:before:scale-110 focus:ring-4 focus:ring-cyan-500/50 disabled:opacity-50"
           >
             <span className="relative z-10">
@@ -164,7 +180,7 @@ export default function Home() {
               <p className="text-cyan-100 leading-relaxed">{summaryEn}</p>
               <div className="flex justify-end gap-3 mt-4">
                 <Button
-                  onClick={() => handleCopy(summaryEn)}
+                  onClick={() => handleCopy(summaryEn, "en")}
                   className="bg-blue-600 text-white px-4 py-1 rounded hover:brightness-110"
                 >
                   Copy
@@ -189,7 +205,7 @@ export default function Home() {
               <p className="leading-relaxed">{summaryUr}</p>
               <div className="flex justify-end mt-4">
                 <Button
-                  onClick={() => handleCopy(summaryUr)}
+                  onClick={() => handleCopy(summaryUr, "ur")}
                   className="bg-green-600 text-white px-4 py-1 rounded hover:brightness-110"
                 >
                   Copy
