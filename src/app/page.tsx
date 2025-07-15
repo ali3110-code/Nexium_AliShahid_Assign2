@@ -111,8 +111,6 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ blogURL, fullText: text }),
       });
-
-      toast.success("Blog summarized successfully!");
     } catch (err) {
       console.error("Scrape error:", err);
       toast.error("Failed to summarize.");
